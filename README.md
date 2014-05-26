@@ -44,5 +44,5 @@ O(log n)。
 基本的には new して set でコツコツ値を入れたら rank/select するだけ。  
 詳細は [main.c][main] を参照。
 
-[main]: https://github.com/masakazu-ishihata/ibary/main.c "main.c"
+[main]: https://github.com/masakazu-ishihata/ibary/blob/master/main.c "main.c"
 

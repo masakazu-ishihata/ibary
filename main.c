@@ -3,7 +3,7 @@
 int main(void)
 {
   int i;
-  ibary *b = ibary_new(4); /* 10 * 8 bit */
+  ibary *b = ibary_new(4); /* 4 byte (= 4 * 8 bit) */
 
   /* set */
   ibary_set(b,  0,  1);
