@@ -56,13 +56,25 @@ O(1)。
 部分ビット配列 _b[_s, -1] の _i 番目の _v の位置を返す。
 O(log n)。
 
-#### Jaccard index
+#### Distance
 
     double ibary_jaccard(ibary *_a, ibary *_b);
 
 ビット配列 _a, _b の Jaccard 係数を返す。  
 Jaccard(a, b) = |a & b| / |a v b|。  
 O(_n)。
+
+    double ibary_cosine(ibary *_a, ibary *_b);
+
+ビット配列 _a, _b の Cosine 類似度を返す。  
+Cosine(a, b) = |a & b| / sqrt(|a||b|)。  
+O(_n)
+
+    int ibary_hamming(ibary *_a, ibary *_b);
+
+ビット配列 _a, _b の Hamming 距離を返す。  
+Hamming(a, b) = |a, b|_1 (L1 norm)。  
+O(_n)
 
 
 ## 使い方

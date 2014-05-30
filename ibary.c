@@ -167,17 +167,6 @@ double ibary_jaccard(ibary *_a, ibary *_b)
   }
   return nu / de;
 }
-/* Hamming distance */
-/* Hamming(a, b) = |a, b|_1 (L1 norm) */
-int ibary_hamming(ibary *_a, ibary *_b)
-{
-  int i, h = 0, n = min(_a->n, _b->n);
-
-  for(i=0; i<n; i++)
-    h += ibary_poptable[ _a->a[i] ^ _b->a[i] ];
-
-  return h;
-}
 /* cosine similarity */
 /* cosine(a, b) = |a & b| / |a||b| */
 double ibary_cosine(ibary *_a, ibary *_b)
@@ -191,7 +180,17 @@ double ibary_cosine(ibary *_a, ibary *_b)
 
   return nu / de;
 }
+/* Hamming distance */
+/* Hamming(a, b) = |a, b|_1 (L1 norm) */
+int ibary_hamming(ibary *_a, ibary *_b)
+{
+  int i, h = 0, n = min(_a->n, _b->n);
 
+  for(i=0; i<n; i++)
+    h += ibary_poptable[ _a->a[i] ^ _b->a[i] ];
+
+  return h;
+}
 
 /*------------------------------------*/
 /* show */

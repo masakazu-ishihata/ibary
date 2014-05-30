@@ -52,8 +52,8 @@ int ibary_iselect(ibary *_b, int _v, int _s, int _t);
 
 /* distance */
 double ibary_jaccard(ibary *_a, ibary *_b);
-int ibary_hamming(ibary *_a, ibary *_b);
 double ibary_cosine(ibary *_a, ibary *_b);
+int ibary_hamming(ibary *_a, ibary *_b);
 
 /* show */
 void ibary_show(FILE *_fp, ibary *_b);
