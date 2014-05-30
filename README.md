@@ -9,7 +9,8 @@ rank は O(1) だけど、select はサボってるので O(log n) なのです�
 
     ibary *ibary_new(size_t _n);
 
-_n byte のビット配列を定義する。
+_n byte のビット配列を定義する。  
+つまりビット長 n =  8 * _n である。
 
     void ibary_free(ibary *_b);
 
@@ -60,7 +61,8 @@ O(log n)。
     double ibary_jaccard(ibary *_a, ibary *_b);
 
 ビット配列 _a, _b の Jaccard 係数を返す。  
-Jaccard(a, b) = |a & b| / |a v b|
+Jaccard(a, b) = |a & b| / |a v b|。  
+O(_n)。
 
 
 ## 使い方

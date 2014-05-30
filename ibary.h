@@ -3,12 +3,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 /*------------------------------------*/
 /* define */
 /*------------------------------------*/
 typedef unsigned int ui;
 typedef unsigned char uc;
+
+/*------------------------------------*/
+/* macro function */
+/*------------------------------------*/
+#define min(a, b) (a < b ? a : b)
+#define max(a, b) (a < b ? b : a)
 
 /*------------------------------------*/
 /* pop count */
@@ -43,8 +50,10 @@ int ibary_select(ibary *_b, int _v, int _i);
 int ibary_irank(ibary *_b, int _v, int _s, int _t);
 int ibary_iselect(ibary *_b, int _v, int _s, int _t);
 
-/* Jaccard index */
+/* distance */
 double ibary_jaccard(ibary *_a, ibary *_b);
+int ibary_hamming(ibary *_a, ibary *_b);
+double ibary_cosine(ibary *_a, ibary *_b);
 
 /* show */
 void ibary_show(FILE *_fp, ibary *_b);

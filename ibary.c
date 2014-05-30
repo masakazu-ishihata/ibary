@@ -20,6 +20,7 @@ uc ibary_popcount(int x)
   return n;
 }
 
+
 /*----------------------------------------------------------------------------*/
 /* bit array */
 /*----------------------------------------------------------------------------*/
@@ -53,6 +54,7 @@ void ibary_free(ibary *_b)
   free(_b->b);
   free(_b);
 }
+
 
 /*------------------------------------*/
 /* accessor */
@@ -133,6 +135,7 @@ int ibary_select(ibary *_b, int _v, int _i)
   }while(1);
 }
 
+
 /*------------------------------------*/
 /* irank / iselect */
 /*------------------------------------*/
@@ -147,23 +150,48 @@ int ibary_iselect(ibary *_b, int _v, int _s, int _i)
   return ibary_select(_b, _v, _i + ibary_rank(_b, _v, _s-1));
 }
 
+
 /*------------------------------------*/
-/* Jaccard index of _a & _b */
+/* distances */
 /*------------------------------------*/
+/* Jaccard index */
+/* Jaccard(a, b) = |a & b| / |a v b| */
 double ibary_jaccard(ibary *_a, ibary *_b)
 {
-  int a, b;
-  int i, de = 0, nu = 0, n = _a->n;
-  if(n > _b->n) n = _b->n;
+  int i, n = min(_a->n, _b->n);
+  double de = 0, nu = 0;
 
   for(i=0; i<n; i++){
-    a = _a->a[i];
-    b = _b->a[i];
-    nu += ibary_poptable[ a & b ];
-    de += ibary_poptable[ a | b ];
+    nu += ibary_poptable[ _a->a[i] & _b->a[i] ];
+    de += ibary_poptable[ _a->a[i] | _b->a[i] ];
   }
-  return nu / (double)de;
+  return nu / de;
 }
+/* Hamming distance */
+/* Hamming(a, b) = |a, b|_1 (L1 norm) */
+int ibary_hamming(ibary *_a, ibary *_b)
+{
+  int i, h = 0, n = min(_a->n, _b->n);
+
+  for(i=0; i<n; i++)
+    h += ibary_poptable[ _a->a[i] ^ _b->a[i] ];
+
+  return h;
+}
+/* cosine similarity */
+/* cosine(a, b) = |a & b| / |a||b| */
+double ibary_cosine(ibary *_a, ibary *_b)
+{
+  int i, n = min(_a->n, _b->n);
+  double de = 0, nu = 0;
+
+  de = sqrt( ibary_rank(_a, 1, _a->n * 8) * ibary_rank(_b, 1, _b->n * 8) );
+  for(i=0; i<n; i++)
+    nu += ibary_poptable[ _a->a[i] | _b->a[i] ];
+
+  return nu / de;
+}
+
 
 /*------------------------------------*/
 /* show */
@@ -233,4 +261,3 @@ void ibary_bit2str(uc _b, char *_c)
   }
   *p = '\0';
 }
-

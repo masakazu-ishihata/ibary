@@ -15,7 +15,7 @@ int main(void)
   /* show */
   printf("a = %x\n", 0x11111111);
   ibary_show(stdout, a);
-  printf("b = %x\n", 0xffff);
+  printf("b = %x\n", 0xffffffff);
   ibary_show(stdout, b);
 
   /* select */
@@ -44,6 +44,8 @@ int main(void)
 
   /* Jaccard index */
   printf("Jaccard(a, b) = %e\n", ibary_jaccard(a, b));
+  printf("Hamming(a, b) = %d\n", ibary_hamming(a, b));
+  printf("Cosine(a, b)  = %e\n", ibary_cosine(a, b));
 
   /* free */
   ibary_free(a);
