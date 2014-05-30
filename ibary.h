@@ -15,7 +15,7 @@ typedef unsigned char uc;
 /* macro function */
 /*------------------------------------*/
 #define min(a, b) (a < b ? a : b)
-#define max(a, b) (a < b ? b : a)
+#define ave(a, b) ( (a + b) / 2 )
 
 /*------------------------------------*/
 /* pop count */
@@ -30,7 +30,7 @@ typedef struct IBARY
 {
   size_t n; /* block size */
   uc *a;    /* array */
-  uc *b;    /* block */
+  ui *b;    /* block */
 } ibary;
 
 /* new */

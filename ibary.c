@@ -3,14 +3,14 @@
 /*----------------------------------------------------------------------------*/
 /* pop table */
 /*----------------------------------------------------------------------------*/
-int  IBARY_POPTABLE = 0;
+int  IBARY_POPTABLE_INITIALIZED = 0;
 uc   ibary_poptable[256];
 void ibary_init_poptable(void)
 {
   int i;
-  if(IBARY_POPTABLE == 0){
+  if(!IBARY_POPTABLE_INITIALIZED){
     for(i=0; i<256; i++) ibary_poptable[i] = ibary_popcount(i);
-    IBARY_POPTABLE = 1;
+    IBARY_POPTABLE_INITIALIZED = 1;
   }
 }
 uc ibary_popcount(int x)
@@ -39,7 +39,7 @@ ibary *ibary_new(size_t _n)
   _b = (ibary *)malloc(sizeof(ibary));
   _b->n = _n;
   _b->a = (uc *)malloc(_n * sizeof(uc));
-  _b->b = (uc *)malloc(_n * sizeof(uc));
+  _b->b = (ui *)malloc(_n * sizeof(ui));
 
   for(i=0; i<_n; i++){
     _b->a[i] = 0;
@@ -82,9 +82,8 @@ void ibary_set(ibary *_b, int _i, int _v)
 void ibary_set_num(ibary *_b, ui _n)
 {
   ui i, q;
-  for(q=_n, i=0; i<8*_b->n; q=q/2, i++){
+  for(q=_n, i=0; i<8*_b->n; q=q/2, i++)
     ibary_set(_b, i, q % 2);
-  }
 }
 int ibary_get(ibary *_b, int _i)
 {
@@ -102,15 +101,26 @@ int ibary_get(ibary *_b, int _i)
 /* rank(b, v, i) = # v's in b[0, i] */
 int ibary_rank(ibary *_b, int _v, int _i)
 {
+  int q, r, m, b;
+
   /* skip if invalid _i */
-  if(_i < 0) return 0;
-  if(_i >= 8 * _b->n) return ibary_rank(_b, _v, 8 * _b->n - 1);
+  if(_i < 0)
+    return 0;
 
-  int q = _i / 8; /* quotient  */
-  int r = _i % 8; /* remainder */
-  uc  m = (0x01 << (r+1)) - 1; /* mask */
-  int b = ibary_poptable[ _b->a[q] & m] + _b->b[q];
+  /* total # bits in b */
+  else if(_i >= 8 * _b->n){
+    b = ibary_poptable[ _b->a[_b->n-1] ] + _b->b[ _b->n-1 ];
+  }
 
+  /* # bits in b[0, _i] */
+  else{
+    q = _i / 8; /* quotient  */
+    r = _i % 8; /* remainder */
+    m = (0x01 << (r+1)) - 1; /* mask */
+    b = ibary_poptable[ _b->a[q] & m ] + _b->b[q];
+  }
+
+  /* 0 / 1 */
   if(_v == 1)  return b;
   else         return _i + 1 - b;
 }
@@ -126,7 +136,7 @@ int ibary_select(ibary *_b, int _v, int _i)
 
   /* binary search */
   do{
-    i = (s + t) / 2;
+    i = ave(s, t);
     r = ibary_rank(_b, _v, i);
     b = ibary_get(_b, i);
     if(r == _i && b == _v) return i;

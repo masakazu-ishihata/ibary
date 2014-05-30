@@ -32,7 +32,7 @@ int main(void)
 
   /* rank */
   printf("rank,   (a,0), (a,1), (b,0), (b,1)\n");
-  for(i=1; i<50; i++){
+  for(i=0; i<50; i++){
     printf("%6d,%6d,%6d,%6d,%6d\n",
            i,
            ibary_rank(a, 0, i),
