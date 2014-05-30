@@ -77,6 +77,13 @@ void ibary_set(ibary *_b, int _i, int _v)
     }
   }
 }
+void ibary_set_num(ibary *_b, ui _n)
+{
+  ui i, q;
+  for(q=_n, i=0; i<8*_b->n; q=q/2, i++){
+    ibary_set(_b, i, q % 2);
+  }
+}
 int ibary_get(ibary *_b, int _i)
 {
   int q = _i / 8;    /* quotient */
@@ -90,8 +97,13 @@ int ibary_get(ibary *_b, int _i)
 /*------------------------------------*/
 /* rank / select */
 /*------------------------------------*/
+/* rank(b, v, i) = # v's in b[0, i] */
 int ibary_rank(ibary *_b, int _v, int _i)
 {
+  /* skip if invalid _i */
+  if(_i < 0) return 0;
+  if(_i >= 8 * _b->n) return ibary_rank(_b, _v, 8 * _b->n - 1);
+
   int q = _i / 8; /* quotient  */
   int r = _i % 8; /* remainder */
   uc  m = (0x01 << (r+1)) - 1; /* mask */
@@ -100,11 +112,13 @@ int ibary_rank(ibary *_b, int _v, int _i)
   if(_v == 1)  return b;
   else         return _i + 1 - b;
 }
+/* select(b, v, i) = pos of the i-th v of b */
 int ibary_select(ibary *_b, int _v, int _i)
 {
   int r, b, s=0, t=_b->n * 8, i;
 
   /* skip if invalid _i */
+  if(_i < 0)  return -1;
   if(_i == 0) return 0;
   if(_i > ibary_rank(_b, _v, 8 * _b->n - 1)) return -1;
 
@@ -117,6 +131,38 @@ int ibary_select(ibary *_b, int _v, int _i)
     else if(r < _i) s = i+1;
     else            t = i-1;
   }while(1);
+}
+
+/*------------------------------------*/
+/* irank / iselect */
+/*------------------------------------*/
+/* irank(b, v, s, t) = # v's in b[s, t] */
+int ibary_irank(ibary *_b, int _v, int _s, int _t)
+{
+  return ibary_rank(_b, _v, _t) - ibary_rank(_b, _v, _s-1);
+}
+/* iselect(b, v, s, i) = pos of the i-th v in b[_s, -1] */
+int ibary_iselect(ibary *_b, int _v, int _s, int _i)
+{
+  return ibary_select(_b, _v, _i + ibary_rank(_b, _v, _s-1));
+}
+
+/*------------------------------------*/
+/* Jaccard index of _a & _b */
+/*------------------------------------*/
+double ibary_jaccard(ibary *_a, ibary *_b)
+{
+  int a, b;
+  int i, de = 0, nu = 0, n = _a->n;
+  if(n > _b->n) n = _b->n;
+
+  for(i=0; i<n; i++){
+    a = _a->a[i];
+    b = _b->a[i];
+    nu += ibary_poptable[ a & b ];
+    de += ibary_poptable[ a | b ];
+  }
+  return nu / (double)de;
 }
 
 /*------------------------------------*/

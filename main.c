@@ -3,27 +3,50 @@
 int main(void)
 {
   int i;
-  ibary *b = ibary_new(4); /* 4 byte (= 4 * 8 bit) */
+
+  /* bit arys (4 bypte = 4 * 8 bit) */
+  ibary *a = ibary_new(4);
+  ibary *b = ibary_new(4);
 
   /* set */
-  ibary_set(b,  0,  1);
-  ibary_set(b,  5,  1);
-  ibary_set(b, 10, 1);
-  ibary_set(b, 15, 1);
-  ibary_set(b, 20, 1);
-  ibary_set(b, 25, 1);
-  ibary_set(b, 30, 1);
-
-  ibary_set(b, 25, 0);
+  ibary_set_num(a, 0x11111111);
+  ibary_set_num(b, 0xffffffff);
 
   /* show */
+  printf("a = %x\n", 0x11111111);
+  ibary_show(stdout, a);
+  printf("b = %x\n", 0xffff);
   ibary_show(stdout, b);
 
   /* select */
-  for(i=1; i<10; i++)
-    printf("select(%d) = %2d, %2d\n", i, ibary_select(b, 1, i), ibary_select(b, 0, i));
+  printf("select, (a,0), (a,1), (b,0), (b,1)\n");
+  for(i=1; i<8*4; i++){
+    printf("%6d,%6d,%6d,%6d,%6d\n",
+           i,
+           ibary_select(a, 0, i),
+           ibary_select(a, 1, i),
+           ibary_select(b, 0, i),
+           ibary_select(b, 1, i)
+           );
+  }
+
+  /* rank */
+  printf("rank,   (a,0), (a,1), (b,0), (b,1)\n");
+  for(i=1; i<50; i++){
+    printf("%6d,%6d,%6d,%6d,%6d\n",
+           i,
+           ibary_rank(a, 0, i),
+           ibary_rank(a, 1, i),
+           ibary_rank(b, 0, i),
+           ibary_rank(b, 1, i)
+           );
+  }
+
+  /* Jaccard index */
+  printf("Jaccard(a, b) = %e\n", ibary_jaccard(a, b));
 
   /* free */
+  ibary_free(a);
   ibary_free(b);
 
   return 0;

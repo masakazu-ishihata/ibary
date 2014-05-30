@@ -21,6 +21,11 @@ _n byte のビット配列を定義する。
 
 ビット配列 _b の _i ビット目を _v にする。
 
+    void ibary_set_num(ibary *_b, ui _n);
+
+ビット配列 _b の値を _n の二進とする。  
+_n は unsigned int なので 4 byte の整数。  
+
     int  ibary_get(ibary *_b, int _i);
 
 ビット配列 _b の _i ビット目を取得する。
@@ -37,6 +42,25 @@ O(1)。
 
 ビット配列 _b の _i 番目の _v の位置を返す。
 O(log n)。
+
+### irank / iselect
+
+    int ibary_rank(ibary *_b, int _v, int _s, int _t);
+
+部分ビット配列 _b[_s,_t] に含まれる _v の数を返す。
+O(1)。
+
+    int ibary_select(ibary *_b, int _v, int _s, int _t);
+
+部分ビット配列 _b[_s, -1] の _i 番目の _v の位置を返す。
+O(log n)。
+
+#### Jaccard index
+
+    double ibary_jaccard(ibary *_a, ibary *_b);
+
+ビット配列 _a, _b の Jaccard 係数を返す。  
+Jaccard(a, b) = |a & b| / |a v b|
 
 
 ## 使い方
