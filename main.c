@@ -4,13 +4,14 @@ int main(void)
 {
   int i;
 
-  /* bit arys (4 bypte = 4 * 8 bit) */
-  ibary *a = ibary_new(4);
-  ibary *b = ibary_new(4);
+  /* 32 bits */
+  ibary *a = ibary_new(32);
+  ibary *b = ibary_new(32);
 
-  /* set */
+  /* set : 4 bits * 8 = 32 bits */
   ibary_set_num(a, 0x11111111);
   ibary_set_num(b, 0xffffffff);
+
 
   /* show */
   printf("a = %x\n", 0x11111111);
@@ -20,7 +21,7 @@ int main(void)
 
   /* select */
   printf("select, (a,0), (a,1), (b,0), (b,1)\n");
-  for(i=1; i<8*4; i++){
+  for(i=1; i<=16*2; i++){
     printf("%6d,%6d,%6d,%6d,%6d\n",
            i,
            ibary_select(a, 0, i),

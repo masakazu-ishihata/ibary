@@ -1,5 +1,5 @@
-#ifndef _ISARY_H_
-#define _ISARY_H_
+#ifndef _IBARY_H_
+#define _IBARY_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,29 +8,24 @@
 /*------------------------------------*/
 /* define */
 /*------------------------------------*/
-typedef unsigned int ui;
-typedef unsigned char uc;
-
-/*------------------------------------*/
-/* macro function */
-/*------------------------------------*/
-#define min(a, b) (a < b ? a : b)
-#define ave(a, b) ( (a + b) / 2 )
+typedef unsigned char uc; /* 1 byte = 8 bit */
+typedef unsigned int ui;  /* 2 byte = 16 bit */
+typedef unsigned long ul; /* 4 byte = 32 bit */
 
 /*------------------------------------*/
 /* pop count */
 /*------------------------------------*/
 void ibary_init_poptable(void);
-uc   ibary_popcount(int x);
+uc   ibary_popcount(ui x);
 
 /*------------------------------------*/
 /* Binary Array */
 /*------------------------------------*/
 typedef struct IBARY
 {
-  size_t n; /* block size */
-  uc *a;    /* array */
-  ui *b;    /* block */
+  size_t n; /* # blocks */
+  ui *a;    /* array */
+  ul *b;    /* block */
 } ibary;
 
 /* new */
@@ -39,7 +34,7 @@ void   ibary_free(ibary *_b);
 
 /* accessor */
 void ibary_set(ibary *_b, int _i, int _v);
-void ibary_set_num(ibary *_b, ui _n);
+void ibary_set_num(ibary *_b, ul _n);
 int  ibary_get(ibary *_b, int _i);
 
 /* rank / select */
@@ -57,6 +52,6 @@ int ibary_hamming(ibary *_a, ibary *_b);
 
 /* show */
 void ibary_show(FILE *_fp, ibary *_b);
-void ibary_bit2str(uc _b, char *_c);
+void ibary_bit2str(ui _b, char *_c);
 
 #endif
