@@ -9,8 +9,7 @@ rank は O(1) だけど、select はサボってるので O(log n) なのです�
 
     ibary *ibary_new(size_t _n);
 
-_n byte のビット配列を定義する。  
-つまりビット長 n =  8 * _n である。
+_n bit のビット配列を定義する。  
 
     void ibary_free(ibary *_b);
 
