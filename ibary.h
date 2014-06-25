@@ -23,27 +23,33 @@ uc   ibary_popcount(ui x);
 /*------------------------------------*/
 typedef struct IBARY
 {
-  size_t n; /* # blocks */
-  ui *a;    /* array */
-  ul *b;    /* block */
+  /* size */
+  ul nb; /* # bits */
+  ul ns; /* # small blocks */
+  ul nl; /* # large blocks */
+
+  /* arrays */
+  ui *B; /* bit array */
+  uc *S; /* small blocks */
+  ul *L; /* large blocks */
 } ibary;
 
 /* new */
-ibary *ibary_new(size_t _n);
+ibary *ibary_new(ul _n);
 void   ibary_free(ibary *_b);
 
 /* accessor */
-void ibary_set(ibary *_b, int _i, int _v);
+uc   ibary_get(ibary *_b, ul _i);
+void ibary_set(ibary *_b, ul _i, uc _v);
 void ibary_set_num(ibary *_b, ul _n);
-int  ibary_get(ibary *_b, int _i);
 
 /* rank / select */
-int ibary_rank(ibary *_b, int _v, int _i);
-int ibary_select(ibary *_b, int _v, int _i);
+ul ibary_rank(ibary *_b, uc _v, ul _i);
+ul ibary_select(ibary *_b, uc _v, ul _i);
 
 /* rank / select with interval [s, t] */
-int ibary_irank(ibary *_b, int _v, int _s, int _t);
-int ibary_iselect(ibary *_b, int _v, int _s, int _t);
+ul ibary_irank(ibary *_b, uc _v, ul _s, ul _t);
+ul ibary_iselect(ibary *_b, uc _v, ul _s, ul _t);
 
 /* distance */
 double ibary_jaccard(ibary *_a, ibary *_b);

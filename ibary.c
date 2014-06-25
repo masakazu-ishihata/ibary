@@ -3,14 +3,15 @@
 /*----------------------------------------------------------------------------*/
 /* constants */
 /*----------------------------------------------------------------------------*/
-#define BIT 16
+#define SBIT 16
+#define LBIT 256
 #define NUM 65536
 
 /*----------------------------------------------------------------------------*/
 /* macro function */
 /*----------------------------------------------------------------------------*/
-#define min(a, b) (a < b ? a : b)
-#define ave(a, b) ( (a + b) / 2 )
+#define min(a, b) ( (a) < (b) ? (a) : (b) )
+#define ave(a, b) ( ((a) + (b)) / 2 )
 
 /*----------------------------------------------------------------------------*/
 /* pop table */
@@ -40,7 +41,7 @@ uc ibary_popcount(ui x)
 /*------------------------------------*/
 /* _n bits ary */
 /*------------------------------------*/
-ibary *ibary_new(size_t _n)
+ibary *ibary_new(ul _n)
 {
   ibary *_b;
   int i;
@@ -48,16 +49,22 @@ ibary *ibary_new(size_t _n)
   /* init poptable */
   ibary_init_poptable();
 
-  /* binary array */
   _b = (ibary *)malloc(sizeof(ibary));
-  _b->n = (_n + BIT -1) / BIT;
-  _b->a = (ui *)malloc(_b->n * sizeof(ui));
-  _b->b = (ul *)malloc(_b->n * sizeof(ul));
 
-  for(i=0; i<_b->n; i++){
-    _b->a[i] = 0;
-    _b->b[i] = 0;
-  }
+  /* size */
+  _b->nb = _n;                      /* # bits */
+  _b->ns = (_n + SBIT - 1) / SBIT;  /* # small blocks */
+  _b->nl = (_n + LBIT - 1) / LBIT;  /* # large blocks */
+
+  /* init arrays */
+  _b->B = (ui *)malloc(_b->ns * sizeof(ui));
+  _b->S = (uc *)malloc(_b->ns * sizeof(uc));
+  _b->L = (ul *)malloc(_b->nl * sizeof(ul));
+
+  /* init values */
+  for(i=0; i<_b->ns; i++) _b->B[i] = 0;
+  for(i=0; i<_b->ns; i++) _b->S[i] = 0;
+  for(i=0; i<_b->nl; i++) _b->L[i] = 0;
 
   return _b;
 }
@@ -66,8 +73,9 @@ ibary *ibary_new(size_t _n)
 /*------------------------------------*/
 void ibary_free(ibary *_b)
 {
-  free(_b->a);
-  free(_b->b);
+  free(_b->B);
+  free(_b->L);
+  free(_b->S);
   free(_b);
 }
 
@@ -76,45 +84,54 @@ void ibary_free(ibary *_b)
 /* accessor */
 /*------------------------------------------------------------------------*/
 /*------------------------------------*/
-/* set : _b[_i] = _v */
+/* get : _b[i] */
 /*------------------------------------*/
-void ibary_set(ibary *_b, int _i, int _v)
+uc ibary_get(ibary *_b, ul _i)
 {
-  int q = _i / BIT;    /* quotient */
-  int r = _i % BIT;    /* remainder */
-  ui  m = 0x01 << r;   /* bit mask */
-  int i;
+  int qs = _i / SBIT;   /* quotient  */
+  int rs = _i % SBIT;   /* remainder */
+  ui  m = 0x01 << rs;   /* bit mask  */
 
-  if(ibary_get(_b, _i) != _v){
-    /* set 1 */
-    if(_v == 1){
-      _b->a[q] += m;
-      for(i=q+1; i<_b->n; i++) _b->b[i] += 1;
-    }
-    /* set 0 */
-    else if(_v == 0){
-      _b->a[q] -= m;
-      for(i=q+1; i<_b->n; i++) _b->b[i] -= 1;
-    }
-  }
+  if(_b->B[qs] & m) return 1;
+  else              return 0;
 }
 /*------------------------------------*/
 /* set : _b = _n */
 /*------------------------------------*/
 void ibary_set_num(ibary *_b, ul _n)
 {
-  ui i, q;
-  for(q=_n, i=0; i<BIT*_b->n; q=q/2, i++)
+  ul q;
+  ui i;
+  for(q=_n, i=0; i<SBIT*_b->ns; q=q/2, i++)
     ibary_set(_b, i, q % 2);
 }
-int ibary_get(ibary *_b, int _i)
+/*------------------------------------*/
+/* set : _b[_i] = _v */
+/*------------------------------------*/
+void ibary_set(ibary *_b, ul _i, uc _v)
 {
-  int q = _i / BIT;    /* quotient */
-  int r = _i % BIT;    /* remainder */
-  ui  m = 0x01 << r;   /* bit mask */
+  int qs = _i / SBIT; /* quotient */
+  int ql = _i / LBIT;
+  int rs = _i % SBIT; /* remainder */
+  ui  m = 0x01 << rs; /* bit mask */
+  int i, n, b;
 
-  if(_b->a[q] & m) return 1;
-  else             return 0;
+  if(ibary_get(_b, _i) != _v){
+    /* set 0/1 */
+    b = (_v == 1) ? 1 : -1;
+
+    /* bit array */
+    _b->B[qs] += b * m;
+
+    /* large block */
+    n = _b->nl;
+    for(i=ql+1; i<n; i++) _b->L[i] += b;
+
+    /* small block */
+    n = SBIT * ((_i + LBIT) / LBIT);
+    n = min(n, _b->ns);
+    for(i=qs+1; i<n; i++) _b->S[i] += b;
+  }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -123,41 +140,41 @@ int ibary_get(ibary *_b, int _i)
 /*------------------------------------*/
 /* rank(b, v, i) = # v's in b[0, i] */
 /*------------------------------------*/
-int ibary_rank(ibary *_b, int _v, int _i)
+ul ibary_rank(ibary *_b, uc _v, ul _i)
 {
-  int q, r, m, b;
+  ul qs = _i / SBIT;
+  ul ql = _i / LBIT;
+  ul rs = _i % SBIT;
+  ui m = (0x01 << (rs + 1)) - 1;
+  ui b;
 
   /* skip if invalid _i */
   if(_i < 0) return 0;
 
   /* total # _v in _b if _i > total length */
-  if(_i >= BIT * _b->n)
-    b = ibary_poptable[ _b->a[_b->n-1] ] + _b->b[ _b->n-1 ];
+  if(_i >= _b->nb)
+    b = ibary_poptable[ _b->B[_b->ns-1] ]
+      + _b->S[ _b->ns-1 ]
+      + _b->L[ _b->nl-1 ];
 
   /* # bits in b[0, _i] */
-  else{
-    q = _i / BIT; /* quotient  */
-    r = _i % BIT; /* remainder */
-    m = (0x01 << (r+1)) - 1; /* mask */
-    b = ibary_poptable[ _b->a[q] & m ] + _b->b[q];
-  }
+  else
+    b = ibary_poptable[ _b->B[qs] & m ] + _b->S[qs] + _b->L[ql];
 
   /* 0 / 1 */
-  if(_v == 1)  return b;
-  else         return _i + 1 - b;
+  return _v == 1 ? b : min(_i, _b->nb) + 1 - b;
 }
 /*------------------------------------*/
 /* select(b, v, i) = pos of the i-th v of b */
 /*------------------------------------*/
-int ibary_select(ibary *_b, int _v, int _i)
+ul ibary_select(ibary *_b, uc _v, ul _i)
 {
-  int r, b, i;
-  int s=0, t=_b->n*BIT-1; /* interval */
+  ul r, b, i, s=0, t=_b->nb-1; /* interval */
 
   /* skip if invalid _i */
-  if(_i < 0)  return -1;
+  if(_i < 0)  return _b->nb;
   if(_i == 0) return 0;
-  if(_i > ibary_rank(_b, _v, t)) return -1;
+  if(_i > ibary_rank(_b, _v, t)) return _b->nb;
 
   /* binary search */
   do{
@@ -179,14 +196,14 @@ int ibary_select(ibary *_b, int _v, int _i)
 /*------------------------------------*/
 /* irank(b, v, s, t) = # v's in b[s, t] */
 /*------------------------------------*/
-int ibary_irank(ibary *_b, int _v, int _s, int _t)
+ul ibary_irank(ibary *_b, uc _v, ul _s, ul _t)
 {
   return ibary_rank(_b, _v, _t) - ibary_rank(_b, _v, _s-1);
 }
 /*------------------------------------*/
 /* iselect(b, v, s, i) = pos of the i-th v in b[_s, -1] */
 /*------------------------------------*/
-int ibary_iselect(ibary *_b, int _v, int _s, int _i)
+ul ibary_iselect(ibary *_b, uc _v, ul _s, ul _i)
 {
   return ibary_select(_b, _v, _i + ibary_rank(_b, _v, _s-1));
 }
@@ -201,12 +218,12 @@ int ibary_iselect(ibary *_b, int _v, int _s, int _i)
 /*------------------------------------*/
 double ibary_jaccard(ibary *_a, ibary *_b)
 {
-  int i, n = min(_a->n, _b->n);
+  ul i, n = min(_a->ns, _b->ns);
   double de = 0, nu = 0;
 
   for(i=0; i<n; i++){
-    nu += ibary_poptable[ _a->a[i] & _b->a[i] ];
-    de += ibary_poptable[ _a->a[i] | _b->a[i] ];
+    nu += ibary_poptable[ _a->B[i] & _b->B[i] ];
+    de += ibary_poptable[ _a->B[i] | _b->B[i] ];
   }
   return nu / de;
 }
@@ -216,12 +233,12 @@ double ibary_jaccard(ibary *_a, ibary *_b)
 /*------------------------------------*/
 double ibary_cosine(ibary *_a, ibary *_b)
 {
-  int i, n = min(_a->n, _b->n);
+  ul i, n = min(_a->ns, _b->ns);
   double de = 0, nu = 0;
 
-  de = sqrt( ibary_rank(_a, 1, _a->n * 8) * ibary_rank(_b, 1, _b->n * 8) );
+  de = sqrt( ibary_rank(_a, 1, _a->nb) * ibary_rank(_b, 1, _b->nb) );
   for(i=0; i<n; i++)
-    nu += ibary_poptable[ _a->a[i] | _b->a[i] ];
+    nu += ibary_poptable[ _a->B[i] & _b->B[i] ];
 
   return nu / de;
 }
@@ -231,10 +248,10 @@ double ibary_cosine(ibary *_a, ibary *_b)
 /*------------------------------------*/
 int ibary_hamming(ibary *_a, ibary *_b)
 {
-  int i, h = 0, n = min(_a->n, _b->n);
+  ul i, h = 0, n = min(_a->ns, _b->ns);
 
   for(i=0; i<n; i++)
-    h += ibary_poptable[ _a->a[i] ^ _b->a[i] ];
+    h += ibary_poptable[ _a->B[i] ^ _b->B[i] ];
 
   return h;
 }
@@ -247,15 +264,16 @@ int ibary_hamming(ibary *_a, ibary *_b)
 /*------------------------------------*/
 void ibary_show(FILE *_fp, ibary *_b)
 {
-  int i, j, k;
+  int i, j, d;
   char c[10];
+
+  printf("%lu, %lu, %lu\n", _b->nb, _b->ns, _b->nl);
 
   /* index */
   fprintf(_fp, "index : ");
-  for(i=_b->n-1; i>=0; i--){
-    for(j=BIT-1; j>=0; j--){
-      k = (BIT * i + j) % 10;
-      fprintf(_fp, "%d", k);
+  for(i=_b->ns-1; i>=0; i--){
+    for(j=SBIT-1; j>=0; j--){
+      fprintf(_fp, "%u", (SBIT * i + j) % 10);
     }
     fprintf(_fp, "|");
   }
@@ -263,45 +281,31 @@ void ibary_show(FILE *_fp, ibary *_b)
 
   /* array */
   fprintf(_fp, "array : ");
-  for(i=_b->n-1; i>=0; i--){
-    ibary_bit2str(_b->a[i], c);
-    fprintf(_fp, "%16s|", c);
+  for(i=_b->ns-1; i>=0; i--){
+    ibary_bit2str(_b->B[i], c);
+    fprintf(_fp, "%*s|", SBIT, c);
   }
   fprintf(_fp, "\n");
 
   /* value */
   fprintf(_fp, "value : ");
-  for(i=_b->n-1; i>=0; i--){
-    fprintf(_fp, "%16d|", _b->a[i]);
+  for(i=_b->ns-1; i>=0; i--){
+    fprintf(_fp, "%*u|", SBIT, _b->B[i]);
   }
   fprintf(_fp, "\n");
 
-  /* block */
-  fprintf(_fp, "block : ");
-  for(i=_b->n-1; i>=0; i--){
-    fprintf(_fp, "%16ld|", _b->b[i]);
+  /* large block */
+  d = min(SBIT+LBIT-1, (SBIT+1)*_b->ns-1);
+  fprintf(_fp, "large : ");
+  for(i=_b->nl-1; i>=0; i--){
+    fprintf(_fp, "%*lu|", d, _b->L[i]);
   }
   fprintf(_fp, "\n");
 
-  /* rank 1 */
-  fprintf(_fp, "rank1 : ");
-  for(i=_b->n-1; i>=0; i--){
-    for(j=BIT-1; j>=0; j--){
-      k = i * BIT + j;
-      fprintf(_fp, "%d", ibary_rank(_b, 1, k) % 10);
-    }
-    fprintf(_fp, "|");
-  }
-  fprintf(_fp, "\n");
-
-  /* rank 0 */
-  fprintf(_fp, "rank0 : ");
-  for(i=_b->n-1; i>=0; i--){
-    for(j=BIT-1; j>=0; j--){
-      k = i * BIT + j;
-      fprintf(_fp, "%d", ibary_rank(_b, 0, k) % 10);
-    }
-    fprintf(_fp, "|");
+  /* small block */
+  fprintf(_fp, "small : ");
+  for(i=_b->ns-1; i>=0; i--){
+    fprintf(_fp, "%*u|", SBIT, _b->S[i]);
   }
   fprintf(_fp, "\n");
 }
@@ -313,7 +317,7 @@ void ibary_bit2str(ui _b, char *_c)
   int i;
   char *p;
   ui m;
-  for(p=_c, m=NUM/2, i=0; i<BIT; i++, m=m>>1, p++){
+  for(p=_c, m=NUM/2, i=0; i<SBIT; i++, m=m>>1, p++){
     if(_b & m) *p = '1';
     else       *p = '0';
   }
