@@ -1,6 +1,6 @@
 #include "ibary.h"
 
-/*----------------------------------------------------------------------------*/
+
 /* constants */
 /*----------------------------------------------------------------------------*/
 #define SBIT 16
@@ -69,6 +69,18 @@ ibary *ibary_new(ul _n)
   return _b;
 }
 /*------------------------------------*/
+/* clone */
+/*------------------------------------*/
+ibary *ibary_clone(ibary *_b)
+{
+  ul i;
+  ibary *c = ibary_new(_b->nb);
+  for(i=0; i<c->ns; i++) c->B[i] = _b->B[i];
+  for(i=0; i<c->ns; i++) c->S[i] = _b->S[i];
+  for(i=0; i<c->nl; i++) c->L[i] = _b->L[i];
+  return c;
+}
+/*------------------------------------*/
 /* free */
 /*------------------------------------*/
 void ibary_free(ibary *_b)
@@ -110,11 +122,11 @@ void ibary_set_num(ibary *_b, ul _n)
 /*------------------------------------*/
 void ibary_set(ibary *_b, ul _i, uc _v)
 {
-  int qs = _i / SBIT; /* quotient */
-  int ql = _i / LBIT;
-  int rs = _i % SBIT; /* remainder */
-  ui  m = 0x01 << rs; /* bit mask */
-  int i, n, b;
+  ul qs = _i / SBIT;  /* quotient */
+  ul ql = _i / LBIT;
+  ul rs = _i % SBIT;  /* remainder */
+  ui m  = 0x01 << rs; /* bit mask */
+  ul i, n, b;
 
   if(ibary_get(_b, _i) != _v){
     /* set 0/1 */
@@ -128,11 +140,55 @@ void ibary_set(ibary *_b, ul _i, uc _v)
     for(i=ql+1; i<n; i++) _b->L[i] += b;
 
     /* small block */
-    n = SBIT * ((_i + LBIT) / LBIT);
-    n = min(n, _b->ns);
+    n = min(SBIT * ((_i + LBIT) / LBIT), _b->ns);
     for(i=qs+1; i<n; i++) _b->S[i] += b;
   }
 }
+
+
+/*------------------------------------------------------------------------*/
+/* operators */
+/*------------------------------------------------------------------------*/
+ui and(ui _a, ui _b){ return _a & _b; }
+ui or(ui _a, ui _b){  return _a | _b; }
+ui xor(ui _a, ui _b){ return _a ^ _b; }
+void ibary_and(ibary *_a, ibary *_b){ ibary_operator(_a, _b, and); }
+void ibary_or(ibary *_a, ibary *_b){  ibary_operator(_a, _b, or);  }
+void ibary_xor(ibary *_a, ibary *_b){ ibary_operator(_a, _b, xor); }
+
+/*------------------------------------*/
+/* ibary_operator(a, b, *) : a = a * b */
+/*------------------------------------*/
+void ibary_operator(ibary *_a, ibary *_b, ui (*opt)(ui, ui))
+{
+  ul i, j, s, t;
+  int diff;
+
+  for(i=0; i<_a->ns; i++){
+    /* difference of counts */
+    diff = ibary_poptable[ opt(_a->B[i], _b->B[i]) ] - ibary_poptable[ _a->B[i] ];
+
+    /* operate */
+    _a->B[i] = opt(_a->B[i], _b->B[i]);
+
+    if(diff == 0) continue;
+
+    /* large block */
+    s = i / SBIT + 1;
+    t = _a->nl;
+    printf("large [%lu, %lu]\n", s, t);
+    for(j=s; j<t; j++) _a->L[j] += diff;
+
+    /* small block */
+    s = i + 1;
+    t = min(SBIT * ((i + SBIT) / SBIT) ,_b->ns);
+    printf("small [%lu, %lu]\n", s, t);
+    for(j=s; j<t; j++) _a->S[j] += diff;
+  }
+}
+
+
+
 
 /*----------------------------------------------------------------------------*/
 /* rank / select */
@@ -273,7 +329,7 @@ void ibary_show(FILE *_fp, ibary *_b)
   fprintf(_fp, "index : ");
   for(i=_b->ns-1; i>=0; i--){
     for(j=SBIT-1; j>=0; j--){
-      fprintf(_fp, "%u", (SBIT * i + j) % 10);
+      fprintf(_fp, "%X", j);
     }
     fprintf(_fp, "|");
   }
@@ -284,13 +340,6 @@ void ibary_show(FILE *_fp, ibary *_b)
   for(i=_b->ns-1; i>=0; i--){
     ibary_bit2str(_b->B[i], c);
     fprintf(_fp, "%*s|", SBIT, c);
-  }
-  fprintf(_fp, "\n");
-
-  /* value */
-  fprintf(_fp, "value : ");
-  for(i=_b->ns-1; i>=0; i--){
-    fprintf(_fp, "%*u|", SBIT, _b->B[i]);
   }
   fprintf(_fp, "\n");
 

@@ -36,12 +36,22 @@ typedef struct IBARY
 
 /* new */
 ibary *ibary_new(ul _n);
+ibary *ibary_clone(ibary *_b);
 void   ibary_free(ibary *_b);
 
 /* accessor */
 uc   ibary_get(ibary *_b, ul _i);
 void ibary_set(ibary *_b, ul _i, uc _v);
 void ibary_set_num(ibary *_b, ul _n);
+
+/* operators */
+ui and(ui _a, ui _b);
+ui or(ui _a, ui _b);
+ui xor(ui _a, ui _b);
+void ibary_and(ibary *_a, ibary *_b);
+void ibary_or(ibary *_a, ibary *_b);
+void ibary_xor(ibary *_a, ibary *_b);
+void ibary_operator(ibary *_a, ibary *_b, ui (*opt)(ui, ui));
 
 /* rank / select */
 ul ibary_rank(ibary *_b, uc _v, ul _i);

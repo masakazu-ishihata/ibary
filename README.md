@@ -5,17 +5,21 @@ rank は O(1) だけど、select はサボってるので O(log n) なのです�
 勉強で実装したので実用的ではないです。  
 
 ## method
-### new / free
+### new / clone / free
 
     ibary *ibary_new(size_t _n);
 
 _n bit のビット配列を定義する。  
 
+    ibary *ibary_new(ibary *_b);
+
+ビット配列 _b の clone を返す。  
+
     void ibary_free(ibary *_b);
 
 ビット配列 _b を free する。
 
-### accessor
+### accessors
 
     void ibary_set(ibary *_b, int _i, int _v);
 
@@ -30,6 +34,19 @@ _n は unsigned int なので 4 byte の整数。
 
 ビット配列 _b の _i ビット目を取得する。
 
+### operators
+
+    void ibary_and(ibary *_a, ibary *_b);
+
+ビット配列 _a を _a * _b へ変更する。
+
+    void ibary_or(ibary *_a, ibary *_b);
+
+ビット配列 _a を _a | _b へ変更する。
+
+    void ibary_xor(ibary *_a, ibary *_b);
+
+ビット配列 _a を _a ^ _b へ変更する。
 
 ### rank / select
 

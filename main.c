@@ -12,11 +12,14 @@ int main(void)
   ibary_set_num(a, 0x1111111111111111);
   ibary_set_num(b, 0xffffffffffffffff);
 
+  ibary_xor(b, a);
+
   /* show */
   printf("a = %lx\n", 0x1111111111111111);
   ibary_show(stdout, a);
   printf("b = %lx\n", 0xffffffffffffffff);
   ibary_show(stdout, b);
+
 
   /* rank */
   printf("rank,   (a,0), (a,1), (b,0), (b,1)\n");
