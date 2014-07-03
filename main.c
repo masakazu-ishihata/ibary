@@ -1,39 +1,40 @@
 #include "main.h"
 
+#define BIT 64
+
 int main(void)
 {
-  int i;
+  ul i, j;
 
-  /* bit arys (4 bypte = 4 * 8 bit) */
-  ibary *a = ibary_new(4);
-  ibary *b = ibary_new(4);
+  /* 64 bits */
+  ibary *a = ibary_new(BIT);
+  ibary *b = ibary_new(BIT);
 
-  /* set */
-  ibary_set_num(a, 0x11111111);
-  ibary_set_num(b, 0xffffffff);
-
-  /* show */
-  printf("a = %x\n", 0x11111111);
+  /* a */
+  ibary_set_num(a, 0x1111111111111111);
+  printf("a = %lx\n", 0x1111111111111111);
   ibary_show(stdout, a);
-  printf("b = %x\n", 0xffffffff);
+
+  /* b */
+  ibary_set_num(b, 0xffffffffffffffff);
+  printf("b = %lx\n", 0xffffffffffffffff);
   ibary_show(stdout, b);
 
-  /* select */
-  printf("select, (a,0), (a,1), (b,0), (b,1)\n");
-  for(i=1; i<8*4; i++){
-    printf("%6d,%6d,%6d,%6d,%6d\n",
-           i,
-           ibary_select(a, 0, i),
-           ibary_select(a, 1, i),
-           ibary_select(b, 0, i),
-           ibary_select(b, 1, i)
-           );
+  /* count */
+  printf("    v,    a,    b\n");
+  for(i=0; i<2; i++)
+    printf("%5lu,%5lu,%5lu\n", i, ibary_count(a, i), ibary_count(b, i));
+
+  printf("    v,    u,  a-b\n");
+  for(i=0; i<2; i++){
+    for(j=0; j<2; j++)
+      printf("%5lu,%5lu,%5lu\n", i, j, ibary_count2(a,b,i,j));
   }
 
   /* rank */
   printf("rank,   (a,0), (a,1), (b,0), (b,1)\n");
-  for(i=0; i<50; i++){
-    printf("%6d,%6d,%6d,%6d,%6d\n",
+  for(i=0; i<BIT; i++){
+    printf("%6lu,%6lu,%6lu,%6lu,%6lu\n",
            i,
            ibary_rank(a, 0, i),
            ibary_rank(a, 1, i),
@@ -42,9 +43,21 @@ int main(void)
            );
   }
 
+  /* select */
+  printf("select, (a,0), (a,1), (b,0), (b,1)\n");
+  for(i=1; i<=BIT; i++){
+    printf("%6lu,%6lu,%6lu,%6lu,%6lu\n",
+           i,
+           ibary_select(a, 0, i),
+           ibary_select(a, 1, i),
+           ibary_select(b, 0, i),
+           ibary_select(b, 1, i)
+           );
+  }
+
   /* Jaccard index */
   printf("Jaccard(a, b) = %e\n", ibary_jaccard(a, b));
-  printf("Hamming(a, b) = %d\n", ibary_hamming(a, b));
+  printf("Hamming(a, b) = %lu\n", ibary_hamming(a, b));
   printf("Cosine(a, b)  = %e\n", ibary_cosine(a, b));
 
   /* free */

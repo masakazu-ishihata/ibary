@@ -18,4 +18,4 @@ lib:
 	$(CC) $(SHAD) -o $(LIB) ibary.c $(L)
 
 main.o: main.h ibary.o
-isary.o: ibary.h
+ibary.o: ibary.h
