@@ -5,6 +5,7 @@
 int main(void)
 {
   ul i, j;
+  char str[256];
 
   /* 64 bits */
   ibary *a = ibary_new(BIT);
@@ -12,12 +13,14 @@ int main(void)
 
   /* a */
   ibary_set_num(a, 0x1111111111111111);
-  printf("a = %lx\n", 0x1111111111111111);
+  ibary_string(a, str);
+  printf("a = %s\n", str);
   ibary_show(stdout, a);
 
   /* b */
   ibary_set_num(b, 0xffffffffffffffff);
-  printf("b = %lx\n", 0xffffffffffffffff);
+  ibary_string(b, str);
+  printf("b = %s\n", str);
   ibary_show(stdout, b);
 
   /* count */
