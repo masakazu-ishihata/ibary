@@ -63,12 +63,9 @@ ibary *ibary_new(ul _n)
   _b->nl = (_n + LBIT - 1) / LBIT;  /* # large blocks */
 
   /* init arrays */
-  _b->B = (ui *)malloc(_b->ns * sizeof(ui)); /* bit ary */
-  _b->S = (uc *)malloc(_b->ns * sizeof(uc)); /* small blocks */
-  _b->L = (ul *)malloc(_b->nl * sizeof(ul)); /* large blocks */
-
-  /* clear */
-  ibary_clear(_b);
+  _b->B = (ui *)calloc(_b->ns, sizeof(ui)); /* bit ary */
+  _b->S = (uc *)calloc(_b->ns, sizeof(uc)); /* small blocks */
+  _b->L = (ul *)calloc(_b->nl, sizeof(ul)); /* large blocks */
 
   return _b;
 }
@@ -77,11 +74,10 @@ ibary *ibary_new(ul _n)
 /*------------------------------------*/
 ibary *ibary_clone(ibary *_b)
 {
-  ul i;
   ibary *c = ibary_new(_b->nb);
-  for(i=0; i<c->ns; i++) c->B[i] = _b->B[i];
-  for(i=0; i<c->ns; i++) c->S[i] = _b->S[i];
-  for(i=0; i<c->nl; i++) c->L[i] = _b->L[i];
+  memmove(c->B, _b->B, _b->ns * sizeof(ui));
+  memmove(c->S, _b->S, _b->ns * sizeof(uc));
+  memmove(c->L, _b->L, _b->nl * sizeof(ul));
   return c;
 }
 /*------------------------------------*/
@@ -98,50 +94,61 @@ void ibary_free(void *_b)
 
 
 /*----------------------------------------------------------------------------*/
-/* rank / select */
+/* access / rank / select */
 /*----------------------------------------------------------------------------*/
 /*------------------------------------*/
-/* rank(b, v, i) = # v's in b[0, i] */
+/* access */
+/*------------------------------------*/
+uc ibary_access(ibary *_b, ul _i)
+{
+  int qs = _i / SBIT;   /* quotient  */
+  int rs = _i % SBIT;   /* remainder */
+  ui  m = mask_one(rs); /* bit mask  */
+  return _b->B[qs] & m ? 1 : 0;
+}
+/*------------------------------------*/
+/* rank(b, v, i) = # v's in b[0, i) */
 /*------------------------------------*/
 ul ibary_rank(ibary *_b, uc _v, ul _i)
 {
-  ul qs = _i / SBIT;
-  ul ql = _i / LBIT;
-  ul rs = _i % SBIT;
-  ui m  = mask_all(rs); /* [0, rs] bits mask */
-  ui b;
+  /* skip if i = 0 || i > _m->nb */
+  if(_i == 0)     return 0;
+  if(_i > _b->nb) return ibary_rank(_b, _v, _b->nb);
 
-  /* total # _v in _b if _i > total length */
-  if(_i >= _b->nb) return ibary_rank(_b, _v, _b->nb-1);
-
-  /* # bits in b[0, _i] */
-  b = ibary_poptable[ _b->B[qs] & m ] + _b->S[qs] + _b->L[ql];
-
-  /* 0 / 1 */
-  return _v == 1 ? b : min(_i, _b->nb) + 1 - b;
+  /* rank */
+  ul qs = (_i-1) / SBIT;
+  ul ql = (_i-1) / LBIT;
+  ul rs = (_i-1) % SBIT;
+  ui m  = mask_all(rs);
+  ui b  = ibary_poptable[ _b->B[qs] & m ] + _b->S[qs] + _b->L[ql];
+  return _v ? b : min(_i, _b->nb) - b;
 }
 /*------------------------------------*/
-/* select(b, v, i) = pos of the i-th v of b */
+/* select(b, v, i) = pos of the (i+1)-th v in b */
 /*------------------------------------*/
 ul ibary_select(ibary *_b, uc _v, ul _i)
 {
-  ul r, b, i, s=0, t=_b->nb-1; /* interval */
-
   /* skip if invalid _i */
-  if(_i < 0)  return _b->nb;
-  if(_i == 0) return 0;
-  if(_i > ibary_rank(_b, _v, t)) return _b->nb;
+  if(_i+1 > ibary_rank(_b, _v, _b->nb)) return _b->nb;
+
+  /* select */
+  ul r, b;
+  ul s = 0, t = _b->nb, m;
 
   /* binary search */
   do{
-    i = ave(s, t);
-    r = ibary_rank(_b, _v, i);
-    b = ibary_get(_b, i);
+    m = (s + t) / 2;             /* mean */
+    b = ibary_access(_b, m);     /* b[m-1] */
+    r = ibary_rank(_b, _v, m+1); /* # _vs in b[s, t) */
 
-    if(r == _i && b == _v) return i;
-    else if(r < _i) s = i+1;
-    else            t = i-1;
-    if(s > t) exit(1);
+    if(r == _i + 1 && b == _v) return m;
+    else if(r < _i + 1) s = m + 1;
+    else                t = m - 1;
+
+    if(s > t){
+      printf("error : %lu < %lu\n", s, t);
+      exit(1);
+    }
   }while(1);
 }
 
@@ -150,18 +157,18 @@ ul ibary_select(ibary *_b, uc _v, ul _i)
 /* irank / iselect */
 /*----------------------------------------------------------------------------*/
 /*------------------------------------*/
-/* irank(b, v, s, t) = # v's in b[s, t] */
+/* irank(b, v, s, t) = # v's in b[s, t) */
 /*------------------------------------*/
 ul ibary_irank(ibary *_b, uc _v, ul _s, ul _t)
 {
-  return ibary_rank(_b, _v, _t) - ibary_rank(_b, _v, _s-1);
+  return ibary_rank(_b, _v, _t) - ibary_rank(_b, _v, _s);
 }
 /*------------------------------------*/
-/* iselect(b, v, s, i) = pos of the i-th v in b[_s, -1] */
+/* iselect(b, v, s, i) = pos of the (i+1)-th v in b[_s:_m->nb) */
 /*------------------------------------*/
 ul ibary_iselect(ibary *_b, uc _v, ul _s, ul _i)
 {
-  return ibary_select(_b, _v, _i + ibary_rank(_b, _v, _s-1));
+  return ibary_select(_b, _v, _i + ibary_rank(_b, _v, _s));
 }
 
 
@@ -180,22 +187,7 @@ ul ibary_size(ibary *_b)
 /*------------------------------------*/
 uc ibary_get(ibary *_b, ul _i)
 {
-  int qs = _i / SBIT;   /* quotient  */
-  int rs = _i % SBIT;   /* remainder */
-  ui  m = mask_one(rs); /* bit mask  */
-
-  if(_b->B[qs] & m) return 1;
-  else              return 0;
-}
-/*------------------------------------*/
-/* set : _b = _n */
-/*------------------------------------*/
-void ibary_set_num(ibary *_b, ul _n)
-{
-  ul q;
-  ui i;
-  for(q=_n, i=0; i<SBIT*_b->ns; q=q/2, i++)
-    ibary_set(_b, i, q % 2);
+  return ibary_access(_b, _i);
 }
 /*------------------------------------*/
 /* set : _b[_i] = _v */
@@ -225,6 +217,19 @@ void ibary_set(ibary *_b, ul _i, uc _v)
   }
 }
 /*------------------------------------*/
+/* set num : b = _n */
+/*------------------------------------*/
+void ibary_set_num(ibary *_b, ul _n)
+{
+  ul i, q = _n;
+  for(i=0, q=_n; i<_b->nb; i++, q=q/2)
+    ibary_set(_b, i, q % 2);
+}
+
+/*----------------------------------------------------------------------------*/
+/* counters */
+/*----------------------------------------------------------------------------*/
+/*------------------------------------*/
 /* count _v's in _b */
 /*------------------------------------*/
 ul   ibary_count(ibary *_b, uc _v)
@@ -251,19 +256,6 @@ ul   ibary_count2(ibary *_a, ibary *_b, uc _v, uc _u)
 
   return n;
 }
-/*------------------------------------*/
-/* pair wise count */
-/*------------------------------------*/
-ul ibary_count_pair(ibary *_a, ibary *_b, uc _v)
-{
-  ul i, j, n=0;
-  for(i=0; i<_a->nb-1; i++){
-    for(j=i+1; j<_a->nb; j++){
-      if((ibary_get(_a, i) == ibary_get(_b, j)) == _v) n++;
-    }
-  }
-  return n;
-}
 
 
 /*------------------------------------------------------------------------*/
@@ -281,6 +273,7 @@ void ibary_or(ibary *_a, ibary *_b){  ibary_operator(_a, _b, or);  }
 void ibary_xor(ibary *_a, ibary *_b){ ibary_operator(_a, _b, xor); }
 void ibary_add(ibary *_a, ibary *_b){ ibary_operator(_a, _b, or); }
 void ibary_sub(ibary *_a, ibary *_b){ ibary_operator(_a, _b, sub); }
+
 /*------------------------------------*/
 /* ibary_operator(a, b, *) : a = a * b */
 /*------------------------------------*/
@@ -338,22 +331,6 @@ ul ibary_hamming(ibary *_a, ibary *_b)
 {
   return ibary_count2(_a, _b, 1, 1) + ibary_count2(_a, _b, 0, 0);
 }
-/*------------------------------------*/
-/* Rand Index */
-/* rand_index(a, b) = (s + d) / nC2 */
-/* s = # pairs in the same group in a & b */
-/* d = # paris in different groups in a & b */
-/*------------------------------------*/
-double ibary_rand_index(ibary *_a, ibary *_b)
-{
-  /* to be added */
-  return 0;
-}
-double ibary_adjusted_rand_index(ibary *_a, ibary *_b)
-{
-  /* to be added */
-  return 0;
-}
 
 
 /*----------------------------------------------------------------------------*/
@@ -364,10 +341,9 @@ double ibary_adjusted_rand_index(ibary *_a, ibary *_b)
 /*------------------------------------*/
 void ibary_clear(ibary *_b)
 {
-  ul i;
-  for(i=0; i<_b->ns; i++) _b->B[i] = 0;
-  for(i=0; i<_b->ns; i++) _b->S[i] = 0;
-  for(i=0; i<_b->nl; i++) _b->L[i] = 0;
+  memset(_b->B, 0, _b->ns * sizeof(ui));
+  memset(_b->S, 0, _b->ns * sizeof(uc));
+  memset(_b->L, 0, _b->nl * sizeof(ul));
 }
 /*------------------------------------*/
 /* copy */
@@ -378,20 +354,23 @@ void ibary_copy(ibary *_a, ibary *_b)
   ibary_or(_a, _b);
 }
 /*------------------------------------*/
-/* I : I[i] = select(_b, _v, i+1) */
+/* I : I[i] = select(_b, _v, i) */
 /*------------------------------------*/
 ul  *ibary_indices(ibary *_b, uc _v)
 {
   ul i, j, n = ibary_count(_b, _v);
   ul *I = (ul *)malloc(n * sizeof(ul));
 
-  if(n < _b->nb / log2(_b->nb)){
+  /* sparse */
+  if(n < _b->nb / log2(_b->nb))
     for(i=0; i<n; i++)
-      I[i] = ibary_select(_b, _v, i+1);
-  }else{
+      I[i] = ibary_select(_b, _v, i);
+
+  /* dence */
+  else
     for(i=0, j=0; i<_b->nb; i++)
-      if(ibary_get(_b, i) == _v) I[j++] = i;
-  }
+      if(ibary_access(_b, i) == _v)
+        I[j++] = i;
 
   return I;
 }
@@ -418,22 +397,34 @@ int  ibary_equal(ibary *_a, ibary *_b)
 /*----------------------------------------------------------------------------*/
 /*------------------------------------*/
 /* string */
-/* _str = _b (bit ary -> string) */
+/* _str = (char *)_b[0,_n) */
 /*------------------------------------*/
 void ibary_string(ibary *_b, char *_str)
 {
-  ibary_substring(_b, _str, 0, _b->nb-1);
+  ibary_substring(_b, 0, _b->nb, _str);
 }
 /*------------------------------------*/
 /* substring */
-/* _str = _b[_s, _t] (bit ary -> string) */
+/* _str = (char *)_b[_s, _t) */
 /*------------------------------------*/
-void ibary_substring(ibary *_b, char *_str, ul _s, ul _t)
+void ibary_substring(ibary *_b, ul _s, ul _t, char *_str)
 {
   ul i;
   char *p;
   for(p=_str, i=0; i<=_t-_s; i++, p++)
-    *p = ibary_get(_b, _t - i) ? '1' : '0';
+    *p = ibary_access(_b, _t - i - 1) ? '1' : '0';
+  *p = '\0';
+}
+/*------------------------------------*/
+/* bits -> str */
+/*------------------------------------*/
+void ibary_bit2str(ui _b, char *_str)
+{
+  int i;
+  char *p;
+  ui m;
+  for(p=_str, m=NUM/2, i=0; i<SBIT; i++, m=m>>1, p++)
+    *p = _b & m ? '1' : '0';
   *p = '\0';
 }
 /*------------------------------------*/
@@ -442,7 +433,7 @@ void ibary_substring(ibary *_b, char *_str, ul _s, ul _t)
 void ibary_show(FILE *_fp, ibary *_b)
 {
   int i, j, d;
-  char c[10];
+  char c[16]; /* 10 bits + \0 */
 
   /* index */
   fprintf(_fp, "index : ");
@@ -476,16 +467,4 @@ void ibary_show(FILE *_fp, ibary *_b)
     fprintf(_fp, "%*u|", SBIT, _b->S[i]);
   }
   fprintf(_fp, "\n");
-}
-/*------------------------------------*/
-/* bits -> str */
-/*------------------------------------*/
-void ibary_bit2str(ui _b, char *_c)
-{
-  int i;
-  char *p;
-  ui m;
-  for(p=_c, m=NUM/2, i=0; i<SBIT; i++, m=m>>1, p++)
-    *p = _b & m ? '1' : '0';
-  *p = '\0';
 }

@@ -48,7 +48,7 @@ int main(void)
 
   /* select */
   printf("select, (a,0), (a,1), (b,0), (b,1)\n");
-  for(i=1; i<=BIT; i++){
+  for(i=0; i<BIT; i++){
     printf("%6lu,%6lu,%6lu,%6lu,%6lu\n",
            i,
            ibary_select(a, 0, i),
